@@ -54,6 +54,8 @@ python3 demo_tournament.py
 ```
 The result will show a table in which the results of the games between each of the players (or heuristics)
  are shown.
+
+
 [//]: # "## 5. Extra Information"
 
 
