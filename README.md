@@ -1,4 +1,4 @@
-# TITLE OF THE PROJECT 
+# Artificial Intelligence for Reversi 
 
 ## 1. Description of the Project
 
