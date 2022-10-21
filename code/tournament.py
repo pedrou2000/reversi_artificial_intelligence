@@ -201,7 +201,7 @@ test = 0 # normal tournament
 # here we choose the players (herusitic classes) which will play against each other in case of normal tournament
 strats = {'End': [HeuristicPonderationMax], 'EndMaxBest': [HeuristicParityMobilityCorners1]}
 
-# this varibles are used in one_heuristic_against_others, when not running a normal tournament
+# these varibles are used in one_heuristic_against_others, when not running a normal tournament
 tested_heuristic = {'0': [HeuristicPonderationMax]}
 tested_against_heuristics = {'1': [HeuristicParityMobilityCorners1]}#, '2': [HeuristicParityMobilityCorners2]}
 
