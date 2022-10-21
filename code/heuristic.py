@@ -1,11 +1,4 @@
-"""Heuristics to evaluate board.
-
-    Authors:
-        Fabiano Baroni <fabiano.baroni@uam.es>,
-        Alejandro Bellogin <alejandro.bellogin@uam.es>
-        Alberto Suárez <alberto.suarez@uam.es>
-
-"""
+# Author: Pedro Urbina Rodriguez
 
 from __future__ import annotations  # For Python 3.7
 from typing import Callable, Sequence

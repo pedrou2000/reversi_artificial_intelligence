@@ -1,11 +1,4 @@
-"""
-Authors: Pedro Urbina Rodríguez
-         César Ramírez Martínez
-         
-Group: 2351
-
-Couple: 9
-"""
+# Author: Pedro Urbina Rodríguez
 
 from __future__ import (
     annotations,

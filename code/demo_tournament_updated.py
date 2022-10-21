@@ -1,9 +1,5 @@
-"""Illustration of tournament.
+# Author: Pedro Urbina Rodriguez
 
-Authors:
-    Alejandro Bellogin <alejandro.bellogin@uam.es>
-
-"""
 
 from __future__ import annotations  # For Python 3.7
 

@@ -1,9 +1,4 @@
-"""Illustration of tournament.
-
-Authors:
-    Alejandro Bellogin <alejandro.bellogin@uam.es>
-
-"""
+# Author: Pedro Urbina Rodriguez
 
 from __future__ import annotations  # For Python 3.7
 
@@ -94,7 +89,7 @@ initial_state = (
     ]
 )
 
-initial_board_global = initial_state
+initial_board_global = intermediate_state_small
 def create_match(player1: Player, player2: Player) -> TwoPlayerMatch:
 
     initial_board = initial_board_global

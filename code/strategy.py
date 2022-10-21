@@ -1,9 +1,6 @@
-"""Strategies for two player games.
-
-   Authors:
-        Fabiano Baroni <fabiano.baroni@uam.es>,
-        Alejandro Bellogin <alejandro.bellogin@uam.es>
-        Alberto Suárez <alberto.suarez@uam.es>
+"""
+Strategies for two player games.
+Author: Pedro Urbina Rodriguez
 """
 
 from __future__ import annotations  # For Python 3.7
