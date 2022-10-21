@@ -7,13 +7,20 @@ Authors:
 
 from __future__ import annotations  # For Python 3.7
 
+
+# import from parent directory
+import os, sys
+parent = os.path.abspath('.')
+sys.path.insert(1, parent)
+
+
 import numpy as np
 import time
 
 from game import Player, TwoPlayerGameState, TwoPlayerMatch
 from heuristic import simple_evaluation_function
 from tictactoe import TicTacToe
-from tournament import StudentHeuristic, Tournament
+from reversi_artificial_intelligence.code.game_infrastructure.tournament import StudentHeuristic, Tournament
 
 
 class Heuristic1(StudentHeuristic):

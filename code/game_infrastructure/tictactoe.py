@@ -15,7 +15,7 @@ from typing import Any, Callable, List, Optional, Tuple
 
 import numpy as np
 
-from game import Player, TwoPlayerGame, TwoPlayerGameState
+from game_infrastructure.game import Player, TwoPlayerGame, TwoPlayerGameState
 
 
 class TicTacToe(TwoPlayerGame):

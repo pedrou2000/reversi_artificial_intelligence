@@ -1,189 +1,376 @@
-"""Infrastructure for tournament.
+# Author: Pedro Urbina Rodriguez
 
-   Author:
-        Alejandro Bellogin <alejandro.bellogin@uam.es>
-"""
 
 from __future__ import annotations  # For Python 3.7
 
-import inspect  # for dynamic members of a module
-import os
-import sys
-from abc import ABC
-from importlib import find_loader, import_module, util
-from typing import Callable, Tuple
+# import from parent directory
+import os, sys
+parent = os.path.abspath('.')
+sys.path.insert(1, parent)
 
-from game import Player, TwoPlayerGame, TwoPlayerGameState, TwoPlayerMatch
-from heuristic import Heuristic
-from strategy import MinimaxAlphaBetaStrategy, MinimaxStrategy
 
-"""
-NOTE: When MinimaxAlphaBetaStrategy has been implemented
-replace MinimaxAlphaBetaStrategy for MinimaxStrategy,
-so that the tournament runs faster.
-"""
+import numpy as np
+import time
 
-class StudentHeuristic(ABC):
-    def __init__(self):
-        pass
-    def evaluation_function(self, state: TwoPlayerGameState) -> float:
-        pass
+from game_infrastructure.game import Player, TwoPlayerGameState, TwoPlayerMatch
+from heuristic import simple_evaluation_function
+from game_infrastructure.tictactoe import TicTacToe
+from game_infrastructure.tournament import StudentHeuristic, Tournament
+
+from heuristic import *
+from game_infrastructure.reversi import (
+    Reversi,
+    from_array_to_dictionary_board,
+    from_dictionary_to_array_board,
+)
+
+
+
+###############################################################################################
+############################### HEURISTIC CLASSES #############################################
+###############################################################################################
+# Classes for executing the strategies developed in heuristic.py. See this file for an 
+# explanation of the heuristics.
+
+class HeuristicDummy(StudentHeuristic):
+
     def get_name(self) -> str:
-        pass
+        return "dummy"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        # Use an auxiliary function.
+        return self.dummy(123)
+
+    def dummy(self, n: int) -> int:
+        return n + 4
+
+class HeuristicRandom(StudentHeuristic):
+
+    def get_name(self) -> str:
+        return "random"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        return float(np.random.rand())
+
+class HeuristicSimpleEval(StudentHeuristic):
+
+    def get_name(self) -> str:
+        return "heuristic_1"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        return simple_evaluation_function(state)
+
+class HeuristicSimpleEval2(Heuristic):
+    def get_name(self) -> str:
+        return "heuristic_1"
+
+    def evaluate(state: TwoPlayerGameState) -> float:
+        return simple_evaluation_function(state)
+
+class HeuristicEndGame(StudentHeuristic):
+    """Heuristic using result_end_game evaluation function"""
+
+    def get_name(self) -> str:
+        return "HeuristicEndGame"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        return result_end_game(state)
+
+class HeuristicMaxCaptureblePieces(StudentHeuristic):
+    """Heuristic using maximize_possibly_captured_pieces evaluation function"""
+
+    def get_name(self) -> str:
+        return "HeuristicMaxCaptureblePieces"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        return maximize_possibly_captured_pieces(state)
+
+class HeuristicBestCapture(StudentHeuristic):
+    """Heuristic using maximize_captured_piece evaluation function"""
+
+    def get_name(self) -> str:
+        return "HeuristicBestCapture"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        return maximize_captured_piece(state)
+
+class HeuristicCorners(StudentHeuristic):
+    """HeuristicCorners"""
+    
+    def get_name(self) -> str:
+        return "HeuristicCorners"
+        
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        return corners_based_function(state)
+
+class HeuristicPonderationMax(StudentHeuristic):
+    """Heuristic using ponderation_maximize evaluation function.
+    Combines HeuristicEndGame, HeuristicMaxCapturablePieces, HeuristicBestCapture 
+    and corners_based_function in an efficient way"""
+
+    def get_name(self) -> str:
+        return "HeuristicPonderationMax"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        p_actual = 0.2
+        p_max_captured = 0.1
+        p_sum_captured = 0.3
+        p_corners = 0.4
+        return ponderation_maximize(state, p_actual, p_max_captured, p_sum_captured, p_corners)
+        
+class HeuristicParityMobilityCorners1(StudentHeuristic):
+    """ Combines corners_based_function, parity_function and best_mobility_function
+    with some optimized poderations"""
+
+    def get_name(self) -> str:
+        return "HeuristicParityMobilityCorners1"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        functions = [corners_based_function, parity_function, best_mobility_function]
+        weights = [0.3, 0.3, 0.4]
+        
+        return combined_based_function(state, functions, weights)
+        
+class HeuristicParityMobilityCorners2(StudentHeuristic):
+    """ Combines corners_based_function, parity_function and best_mobility_function
+    with some optimized poderations"""
+
+    def get_name(self) -> str:
+        return "HeuristicParityMobilityCorners2"
+
+    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+        functions = [corners_based_function, parity_function, best_mobility_function]
+        weights = [0.7, 0.1, 0.2]
+        
+        return combined_based_function(state, functions, weights)
 
 
-class Tournament(object):
-  def __init__(self, max_depth: int, init_match: Callable[[Player, Player], TwoPlayerMatch]):
-    self.__max_depth = max_depth
-    self.__init_match = init_match
 
-  def __get_function_from_str(self, name: str, definition: str, max_strat: int) -> list :
-    # write content in file with new name
-    newfile = "playermodule__" + name
-    with open(newfile, 'w') as fp:
-      print(definition, file=fp)
-    student_classes = list()
-    n_strat = 0
-    sp = util.find_spec(newfile.replace(".py", ""))
-    if sp:
-      m = sp.loader.load_module()
-      # return all the objects that satisfy the function signature
-      for name, obj in inspect.getmembers(m, inspect.isclass):
-          if name != "StudentHeuristic":
-            for name2, obj2 in inspect.getmembers(obj, inspect.isfunction):
-                if name2 == "evaluation_function" and n_strat < max_strat:
-                  student_classes.append(obj)
-                  n_strat += 1
-                elif name2 == "evaluation_function":
-                    print("Ignoring evaluation function in %s because limit of submissions was reached (%d)" % (name, max_strat), file=sys.stderr)
-            # end for
-      # end for
-    # remove file
-    os.remove(newfile)
-    return student_classes
+###############################################################################################
+############################### TOURNAMENT CONFIGURATION ######################################
+###############################################################################################
 
-  #   we assume there is one file for each student/pair
-  def load_strategies_from_folder(self, folder: str, max_strat : int = 3) -> dict:
-    student_strategies = dict()
-    for f in os.listdir(folder):
-      p = os.path.join(folder, f)
-      if os.path.isfile(p):
-        with open(p, 'r') as fp:
-          s = fp.read()
-          name = f
-          strategies = self.__get_function_from_str(name, s, max_strat)
-          student_strategies[f] = strategies
-    return student_strategies
+# Possible Initial States
+intermediate_state_small = (
+    [
+        '..B.B..',
+        '.WBBW..',
+        'WBWBB..',
+        '.W.WWW.',
+        '.BBWBWB',
+    ]
+)
 
-  """
-  Play a tournament among the strategies.
-  n_pairs = games each strategy plays as each color against
-  each opponent. So with N strategies, a total of
-  N*(N-1)*n_pairs games are played.
-  """
-  def run(self, student_strategies: dict, increasing_depth : bool = True, n_pairs: int = 1, allow_selfmatch : bool = False) -> Tuple[dict, dict, dict]:
-    scores = dict()
-    totals = dict()
-    name_mapping = dict()
-    for student1 in student_strategies:
-      strats1 = student_strategies[student1]
-      for student2 in student_strategies:
-        if student1 > student2:
-          continue
-        if student1 == student2 and not allow_selfmatch:
-            continue
-        strats2 = student_strategies[student2]
-        for player1 in strats1:
-          for player2 in strats2:
-            # we now instantiate the players
-            for pair in range(2*n_pairs):
-                player1_first = (pair % 2) == 1
-                sh1 = player1()
-                name1 = student1 + "_" + sh1.get_name()
-                name_mapping[name1] = sh1.get_name()
-                sh2 = player2()
-                name2 = student2 + "_" + sh2.get_name()
-                name_mapping[name2] = sh2.get_name()
-                if increasing_depth:
-                    for depth in range(1, self.__max_depth):
-                        pl1 = Player(
-                            name=name1,
-                            strategy=MinimaxAlphaBetaStrategy(
-                            #strategy=MinimaxStrategy(
-                                heuristic=Heuristic(name=sh1.get_name(), evaluation_function=sh1.evaluation_function),
-                                max_depth_minimax=depth,
-                                verbose=0,
-                            ),
-                        )
-                        pl2 = Player(
-                            name=name2,
-                            strategy=MinimaxAlphaBetaStrategy(
-                            #strategy=MinimaxStrategy(
-                                heuristic=Heuristic(name=sh2.get_name(), evaluation_function=sh2.evaluation_function),
-                                max_depth_minimax=depth,
-                                verbose=0,
-                            ),
-                        )
+initial_state = (
+    [
+        '........',
+        '........',
+        '........',
+        '...WB...',
+        '...BW...',
+        '........',
+        '........',
+        '........'
+    ]
+)
 
-                        self.__single_run(player1_first, pl1, name1, pl2, name2, scores, totals)
-                else:
-                    depth=self.__max_depth
-                    pl1 = Player(
-                        name=name1,
-                        strategy=MinimaxAlphaBetaStrategy(
-                        #strategy=MinimaxStrategy(
-                            heuristic=Heuristic(name=sh1.get_name(), evaluation_function=sh1.evaluation_function),
-                            max_depth_minimax=depth,
-                            verbose=0,
-                        ),
-                    )
-                    pl2 = Player(
-                        name=name2,
-                        strategy=MinimaxAlphaBetaStrategy(
-                        #strategy=MinimaxStrategy(
-                            heuristic=Heuristic(name=sh2.get_name(), evaluation_function=sh2.evaluation_function),
-                            max_depth_minimax=depth,
-                            verbose=0,
-                        ),
-                    )
+intermediate_state_large = (
+    [
+        '........',
+        '...B.B..',
+        '..WBBW..',
+        '.WBWBB..',
+        '..W.WWW.',
+        '..BBWBWB',
+        '........',
+        '........'
+    ]
+)
 
-                    self.__single_run(player1_first, pl1, name1, pl2, name2, scores, totals)
-    return scores, totals, name_mapping
+initial_board_global = intermediate_state_small
 
-  def __single_run(self, player1_first: bool, pl1: Player, name1: str, pl2: Player, name2: str, scores: dict, totals: dict):
-        players = []
-        if player1_first:
-            players = [pl1, pl2]
-        else:
-            players = [pl2, pl1]
-        game = self.__init_match(players[0], players[1])
+repetitions = 1 # tournament repetitions
+depth = 2 # search depth used by the search algorithms
+max_sec_per_move = 5
+
+# different tournament moddalities can be selected
+test = 0 # normal tournament
+#test = 1 # only one heuristic tested against others (tested_against_heuristics)
+#test = 2 # optimize one heuristic's ponderations
+
+# here we choose the players (herusitic classes) which will play against each other in case of normal tournament
+strats = {'End': [HeuristicPonderationMax], 'EndMaxBest': [HeuristicParityMobilityCorners1]}
+
+# this varibles are used in one_heuristic_against_others, when not running a normal tournament
+tested_heuristic = {'0': [HeuristicPonderationMax]}
+tested_against_heuristics = {'1': [HeuristicParityMobilityCorners1]}#, '2': [HeuristicParityMobilityCorners2]}
+
+
+
+
+###############################################################################################
+#################################### TOURNAMENT RUN ###########################################
+###############################################################################################
+
+def one_heuristic_against_others(ponderations: bool):
+    """This function runs tournaments confronting the heuristic in the tested_heuristic 
+    dictionary against all the heuristics in the tested_against_heuristics dictionaty"""
+
+    scores_backup = []
+
+    # for each heuristic in tested_against_heuristics a tournament
+    for heuristic_key in tested_against_heuristics.items():
+        strats = tested_heuristic.copy()
+        strats.update([heuristic_key])
+
+        scores, totals, names = tour.run(
+            student_strategies=strats,
+            increasing_depth=False,
+            n_pairs=repetitions,
+            allow_selfmatch=False,
+        )
+        # we save the relevant results of the tournament in scores_backup
+        tested_heuristic_wins = list(list(scores.values())[0].values())[0]
+        tested_against_name = list(names.values())[1]
+        scores_backup.append([tested_against_name, tested_heuristic_wins])
+
+    # print results
+    tested_heuristic_name = list(names.values())[0]
+    print()
+    print()
+    print('FINAL RESULTS')
+    print('Tested heuristic: ' + tested_heuristic_name)
+    print('[won_games : against_heuristic]')
+    final_won = 0
+    for result in scores_backup:
+        final_won += result[1]
+        print('[%d / %d : ' %(result[1], repetitions*2) + result[0] + ']')
+    
+    if ponderations:
+        print('You heurisitc with ponderations: %.2f, %.2f, %.2f has won: %d' %(i,j,k,final_won))
+    else:
+        print('You heurisitc has won: %d' %final_won)
+        
+
+def create_match(player1: Player, player2: Player) -> TwoPlayerMatch:
+    """Function to create a match between 2 players."""
+
+    initial_board = initial_board_global
+
+    if initial_board is None:
+        height, width = 8, 8  
+    else:
+        height = len(initial_board)
+        width = len(initial_board[0])
         try:
-            game_scores = game.play_match()
-            # let's get the scores (do not assume they will always be binary)
-            # we assume a higher score is better
-            if player1_first:
-                score1, score2 = game_scores[0], game_scores[1]
+            initial_board = from_array_to_dictionary_board(initial_board)
+        except ValueError:
+            raise ValueError('Wrong configuration of the board')
+    
+    game = Reversi(
+        player1=player1,
+        player2=player2,
+        height=height,
+        width=width,
+    )
+    
+    initial_player = player1
+    game_state = TwoPlayerGameState(
+        game=game,
+        board=initial_board,
+        initial_player=initial_player,
+    )
+
+    return TwoPlayerMatch(game_state, max_sec_per_move=max_sec_per_move, gui=False)
+
+tour = Tournament(max_depth=depth, init_match=create_match)
+
+
+
+
+# print information about the tournaments that will be run
+print()
+print('Playing with depth %d. Initial Board:' %(depth))
+print(*initial_board_global, sep = "\n")
+print()
+print(
+    'Results for tournament where each game is repeated '
+    + '%d (%d x 2) times, alternating colors for each player' % (2 * repetitions, repetitions),
+)
+print()
+
+
+
+# depending on the value of the test variable different ways of confronting heuristics will be used
+# if test equals 0 a normal tournament in which each heuristic face the rest will be carried out
+if test == 0 :
+    ##### NORMAL TOURNAMENT #####
+    print('NORMAL TOURNAMENT')
+
+    start = time.time()
+    scores, totals, names = tour.run(
+        student_strategies=strats,
+        increasing_depth=False,
+        n_pairs=repetitions,
+        allow_selfmatch=False,
+    )
+    print('Execution time: %s' %(time.time() - start))
+    print()
+    print('\ttotal:', end='')
+    for name1 in names:
+        print('\t%s' % (name1), end='')
+    print()
+    for name1 in names:
+        print('%s\t%d:' % (name1, totals[name1]), end='')
+        for name2 in names:
+            if name1 == name2:
+                print('\t---', end='')
             else:
-                score1, score2 = game_scores[1], game_scores[0]
-            wins = loses = 0
-            if score1 > score2:
-                wins, loses = 1, 0
-            else:
-                wins, loses = 0, 1
-        except Warning:
-            wins = loses = 0
-        # store the 1-to-1 numbers
-        if name1 not in scores:
-            scores[name1] = dict()
-        if name2 not in scores:
-            scores[name2] = dict()
-        scores[name1][name2] = wins if name2 not in scores[name1] else wins + scores[name1][name2]
-        scores[name2][name1] = loses if name1 not in scores[name2] else loses + scores[name2][name1]
-        # store the total values
-        if name1 not in totals:
-            totals[name1] = 0
-        totals[name1] += wins
-        if name2 not in totals:
-            totals[name2] = 0
-        totals[name2] += loses
-        # end of function
+                print('\t%d' % (scores[name1][name2]), end='')
+        print()
+
+# if test equals 1 a tournament in which one heuristic is faced against a list of others will be
+# carried out
+elif test == 1:
+    ##### TESTING A SINGLE HEURISTIC AGAINST OTHERS #####
+    print('TESTING A SINGLE HEURISTIC AGAINST OTHERS')
+
+    one_heuristic_against_others(ponderations = False)
+
+# if test equals 2 a tournament in which a combined function will be faced against a list of
+# others will be carried out. This time the weights given to each of the evaluation functions
+# that constitute the combined one, will be changing to obtain the best combination of weights.
+
+# Some lines of the code are commented because they were used to maximize a combined function
+# that combines four evaluation functions instead of three.
+elif test == 2:
+    ##### TRYING DIFFERENT PONDERATIONS FOR A GIVEN HEURISTIC #####
+    print('TRYING DIFFERENT PONDERATIONS FOR A GIVEN HEURISTIC')
+
+    #ponderation_list = [num * 0.10 for num in range(10)]
+    ponderation_list = [0.1, 0.2, 0.3, 0.4]
+    
+    for i in ponderation_list:
+        for j in ponderation_list:
+            #for k in ponderation_list:
+            if (i + j) <= 1:
+                k = 1 - j - i
+                #if (i + j + k) <= 1:
+                    #z = 1 - (i + j + k)
+                    
+                """ For each of the ponderations in the ponderation list we define a class
+                in order to test how this class would work, and then we test it """
+                class HeuristicToMaximize(StudentHeuristic):
+                    def get_name(self) -> str:
+                        return "HeuristicToMaximize"
+
+                    def evaluation_function(self, state: TwoPlayerGameState) -> float:
+                        functions = [corners_based_function, parity_function, best_mobility_function]
+                        weights = [i, j, k]
+        
+                        return combined_based_function(state, functions, weights)
+                        #return ponderation_maximize(state, i, j, k, z)
+                
+                tested_heuristic = {'0': [HeuristicToMaximize]}
+
+                one_heuristic_against_others(ponderations = True)

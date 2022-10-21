@@ -6,7 +6,7 @@ from __future__ import (
 from game import (
     TwoPlayerGameState,
 )
-from tournament import (
+from reversi_artificial_intelligence.code.game_infrastructure.tournament import (
     StudentHeuristic,
 )
 from typing import (

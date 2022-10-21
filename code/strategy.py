@@ -10,7 +10,7 @@ from typing import List
 
 import numpy as np
 
-from game import TwoPlayerGame, TwoPlayerGameState
+from game_infrastructure.game import TwoPlayerGame, TwoPlayerGameState
 from heuristic import Heuristic
 
 
@@ -282,8 +282,8 @@ class MinimaxAlphaBetaStrategy(Strategy):
                 
                 # Pruning
                 if (minimax_value <= alpha):
-                    if self.verbose > 0:
-                        print('Pruning!')
+                    #if self.verbose > 0:
+                        #print('Pruning!')
                     return minimax_value
                 
                 beta = min(beta, minimax_value)
@@ -325,8 +325,8 @@ class MinimaxAlphaBetaStrategy(Strategy):
                 
                 # Pruning
                 if (minimax_value >= beta):
-                    if self.verbose > 0:
-                        print('Pruning!')
+                    #if self.verbose > 0:
+                        #print('Pruning!')
                     return minimax_value
                 
                 alpha = max(alpha, minimax_value)

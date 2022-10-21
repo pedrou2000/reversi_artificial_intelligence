@@ -7,12 +7,21 @@
 """
 from __future__ import annotations  # For Python 3.7
 
+# import from parent directory
+import os, sys
+parent = os.path.abspath('.')
+sys.path.insert(1, parent)
+
 import time
 
 import numpy as np
 
 from game import Player, TwoPlayerGameState, TwoPlayerMatch
-from heuristic import Heuristic, heuristic, heuristic2
+from heuristic import Heuristic#, heuristic, heuristic2
+from demo_tournament_updated import HeuristicSimpleEval2 as heuristic
+from demo_tournament_updated import HeuristicSimpleEval2 as heuristic2
+
+
 from strategy import (
     ManualStrategy,
     MinimaxAlphaBetaStrategy,

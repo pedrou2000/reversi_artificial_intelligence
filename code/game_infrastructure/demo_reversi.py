@@ -9,9 +9,17 @@ Authors:
 
 from __future__ import annotations  # For Python 3.7
 
-from game import Player, TwoPlayerGameState, TwoPlayerMatch
-from heuristic import heuristic
-from heuristic import heuristic2
+# import from parent directory
+import os, sys
+parent = os.path.abspath('.')
+sys.path.insert(1, parent)
+
+
+from game import  Player, TwoPlayerGameState, TwoPlayerMatch
+from demo_tournament_updated import HeuristicSimpleEval2 as heuristic
+from demo_tournament_updated import HeuristicSimpleEval2 as heuristic2
+
+
 from reversi import (
     Reversi,
     from_array_to_dictionary_board,

@@ -2,11 +2,10 @@
 
 from __future__ import annotations  # For Python 3.7
 from typing import Callable, Sequence
-from game import TwoPlayerGameState
+from game_infrastructure.game import TwoPlayerGameState
 
 import numpy as np
 import copy
-
 
 class Heuristic(object):
     """Encapsulation of the evaluation fucnction."""
@@ -31,6 +30,8 @@ class Heuristic(object):
     def get_name(self) -> str:
         """Name getter."""
         return self.name
+
+
 
 
 ###############################################################################################
@@ -186,7 +187,6 @@ def parity_function(state: TwoPlayerGameState) -> float:
         
     return state_value
     
-    
 def corners_based_function(state: TwoPlayerGameState) -> float:
     """Measures the difference in the number of corners captured."""
     state_value = 0
@@ -246,7 +246,6 @@ def best_mobility_function(state: TwoPlayerGameState) -> float:
                 
     return state_value
     
-
 def combined_based_function(state: TwoPlayerGameState, functions, weights) -> float:
     """Auxiliary function used to give a ponderation of the input evaluation functions."""
     state_value = 0
